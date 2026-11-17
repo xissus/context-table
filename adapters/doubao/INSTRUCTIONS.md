@@ -44,12 +44,12 @@
 | 参数 | `<安装目录>\server\main.py` 的**完整路径** |
 | 环境变量 | `CONTEXT_TABLE_PATH=<你的表路径>\memory-table.md` |
 
-例如（便携版解压在 `D:\context-table`）：
+例如（便携版解压在 `D:\tools\context-table`）：
 
 ```
-命令      D:\context-table\runtime\python.exe
-参数      D:\context-table\server\main.py
-环境变量  CONTEXT_TABLE_PATH=D:\context-table\memory-table.md
+命令      D:\tools\context-table\runtime\python.exe
+参数      D:\tools\context-table\server\main.py
+环境变量  CONTEXT_TABLE_PATH=D:\tools\context-table\memory-table.md
 ```
 
 **命令一定写绝对路径。** GUI 客户端启动子进程时不继承你终端里的 PATH，
