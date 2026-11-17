@@ -5,6 +5,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
+# 测试固定用这套话题，不受 CONTEXT_TABLE.md 默认值变化影响
+os.environ.setdefault("CONTEXT_TABLE_TOPICS", "赛事,人际,工具,学习,方法,生活")
+
 import server.main as m
 
 

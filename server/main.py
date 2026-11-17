@@ -31,7 +31,7 @@ except ImportError:
         sys.exit(1)
 
 DEFAULT_COLUMNS = ["定了", "事实", "待办", "否了", "底表"]
-DEFAULT_TOPICS = ["赛事", "人际", "工具", "学习", "方法", "生活"]
+DEFAULT_TOPICS = ["工作", "学习", "生活", "人际", "工具", "方法"]
 
 SECTION_NUM = {
     "定了": "一、定了",
@@ -111,6 +111,18 @@ def find_alias_file(table_path: Path) -> Path:
     return table_path.with_name(f"{table_path.stem}-aliases{suffix}")
 
 
+def _env_topics(default: list[str]) -> list[str]:
+    """CONTEXT_TABLE_TOPICS 环境变量优先于 frontmatter。
+
+    用途：同一个程序，不同人用不同话题。改环境变量即可，不动文件。
+    """
+    raw = os.environ.get("CONTEXT_TABLE_TOPICS", "").strip()
+    if not raw:
+        return default
+    items = [x for x in re.split(r"[,，、\s]+", raw) if x]
+    return items or default
+
+
 def load_rules() -> tuple[list[str], list[str]]:
     """从 CONTEXT_TABLE.md 的 frontmatter 读列名和话题。找不到就用默认值。"""
     here = Path(__file__).resolve().parent.parent / "CONTEXT_TABLE.md"
@@ -136,8 +148,8 @@ def load_rules() -> tuple[list[str], list[str]]:
                     cols = items
                 elif key == "topics" and items:
                     topics = items
-        return cols, topics
-    return DEFAULT_COLUMNS[:], DEFAULT_TOPICS[:]
+        return cols, _env_topics(topics)
+    return DEFAULT_COLUMNS[:], _env_topics(DEFAULT_TOPICS[:])
 
 
 COLUMNS, TOPICS = load_rules()
