@@ -232,7 +232,7 @@ Write-Host "  WorkBuddy   完全退出重开 -> 连接器 -> 自定义连接器 
 Write-Host "  Codex       完全退出重开（不用点任何东西）"
 Write-Host "  DSH         完全退出重开（不用点任何东西）"
 Write-Host ""
-Write-Host "豆包没有配置文件，脚本改不了，只能手点（约 3 分钟）：" -ForegroundColor White
+Write-Host "豆包（未实机验证）：没有配置文件，脚本改不了，只能手点，约 3 分钟：" -ForegroundColor White
 Write-Host "  侧边栏「技能·连接器·伙伴」-> 新建自定义连接器 -> 传输类型选 STDIO"
 Write-Host "  命令   $py"
 Write-Host "  参数   $ServerPath"

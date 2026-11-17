@@ -128,7 +128,7 @@ env = { CONTEXT_TABLE_PATH = 'D:/path/to/memory-table.md' }
 
 **DeepSeek Harness** — MCP 客户端是内置的，只在 `cordis.patch.yml` 里加一条即可（`serverName` 用下划线，见 `docs/USAGE.md`）。
 
-**豆包** — 支持自定义连接器，但**没有配置文件**，只能在界面里手点（约 3 分钟）：
+**豆包**（⚠️ 未实机验证）— 支持自定义连接器，但**没有配置文件**，只能在界面里手点（约 3 分钟）：
 
 ```
 侧边栏「技能·连接器·伙伴」→ 新建自定义连接器 → 传输类型选 STDIO
