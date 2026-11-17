@@ -87,7 +87,7 @@
 话题默认六个：`工作` `学习` `生活` `人际` `工具` `方法`。
 
 **不是硬规定。** 学生打比赛可以换成 `赛事`，上班可以换成 `会议` `同事` `交付`。
-改 `CONTEXT_TABLE.md` 开头一行，或者设环境变量 `CONTEXT_TABLE_TOPICS=赛事,学习,生活,人际,工具,方法`。
+改 `CONTEXT_TABLE.md` 开头一行，或者设环境变量 `CONTEXT_TABLE_TOPICS=工作,会议,同事,交付,工具,生活`。
 
 为什么要限死个数：标签一自由，三个月后就是一团乱麻，等于没有。**换一套可以，别临时加第七个。**
 
@@ -97,7 +97,7 @@
 
 ### 两条路，选一条
 
-**A. 电脑上没装 Python** → 下 `context-table-win-x64.zip`（28MB，在 Releases），解压，双击 `install\install.bat`。
+**A. 电脑上没装 Python** → 下 `context-table-win-x64.zip`（28MB，在 Releases 页），解压，双击 `install\install.bat`。
 
 包里带着完整的 Python 运行时（3.13.9 + mcp 依赖），**你电脑上什么都不用装**。只支持 Windows x64。
 
@@ -154,9 +154,9 @@ python scripts/sync_auto_inject.py --append-to \
 
 ```toml
 [mcp_servers.context-table]
-command = 'D:/Python/python.exe'
-args = ['D:/context-table/server/main.py']
-env = { CONTEXT_TABLE_PATH = 'D:/path/to/memory-table.md' }
+command = '<你本机的 python.exe 完整路径>'
+args = ['<克隆目录>/server/main.py']
+env = { CONTEXT_TABLE_PATH = '<你的表路径>/memory-table.md' }
 ```
 
 **DeepSeek Harness** — MCP 客户端是内置的，只在 `cordis.patch.yml` 里加一条即可（`serverName` 用下划线，见 `docs/USAGE.md`）。
@@ -218,7 +218,7 @@ python server/main.py undo --table <路径>
 **但这是模型判断，不是系统保证。** 长对话后半段、话题突然切换时仍会漏。
 漏了你不会收到错误——只会发现末尾没有「已记」那行。100% 需要 pre-turn hook，四个平台都没开放。
 
-**二、只能减少事实型幻觉。**
+**二、只能减少跨轮事实遗忘和事实型误记。**
 记错人名、记错时间、记错决定——这些能防。推理错、算错、理解偏了，它管不了。
 
 **三、不能跨设备自动同步。**
@@ -257,7 +257,7 @@ DSH 的 `cordis.patch.yml` 里，新增插件必须写成 `- insert:` 包裹的�
 | DeepSeek Harness | ✅ | ✅ | 脚本写 `cordis.patch.yml`，插件随应用自带 |
 | 豆包 | ⚠️ 未验证 | ⚠️ 未验证 | 只能手动点，见 `adapters/doubao/` |
 
-前三个是同一张表、三个客户端交替写入，没有冲突。豆包那行没实测——写文档的人手里没装豆包。
+前三个是同一张表、三个客户端交替写入，没有冲突。豆包那行没实测过。
 
 ---
 

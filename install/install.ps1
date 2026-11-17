@@ -241,6 +241,6 @@ Write-Host "  详细步骤见 adapters\doubao\INSTRUCTIONS.md"
 Write-Host ""
 Write-Host "验证：新开一个对话，说一句有结论的话，例如" -ForegroundColor White
 Write-Host "  「这个项目以后只用本地文件，不走云同步。」"
-Write-Host "  看回答末尾有没有：已记：定了 x1（工具）"
+Write-Host "  看回答末尾有没有：已记：定了 ×1（工具）"
 Write-Host ""
 if ($DryRun) { Write-Host "（演练结束，没写任何文件。去掉 -DryRun 再跑一次才真正生效）" -ForegroundColor Yellow }

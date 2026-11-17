@@ -23,7 +23,6 @@ DOCS = [
     ("核心规则", "CONTEXT_TABLE.md"),
     ("架构", "ARCHITECTURE.md"),
     ("使用说明", "docs/USAGE.md"),
-    ("设计评审", "docs/DESIGN_REVIEW.md"),
     ("规则自动注入", "docs/AUTO_INJECT.md"),
     ("豆包接入", "adapters/doubao/INSTRUCTIONS.md"),
     ("平台说明", "adapters/README.md"),

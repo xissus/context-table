@@ -41,9 +41,12 @@ SECTION_NUM = {
     "底表": "五、底表",
 }
 
-TEMPLATE = """# 记忆表
+def build_template() -> str:
+    """建新表用的空模板。话题行按当前生效的 TOPICS 生成，不写死。"""
+    topics = " ".join(TOPICS)
+    return f"""# 记忆表
 
-> 话题只用六个：赛事 人际 工具 学习 方法 生活
+> 话题只用这六个：{topics}
 
 ## 一、定了
 
@@ -261,8 +264,9 @@ def backup_file(path: Path) -> Path | None:
 
 def read_table(path: Path) -> str:
     if not path.is_file():
-        atomic_write(path, TEMPLATE)
-        return TEMPLATE
+        text = build_template()
+        atomic_write(path, text)
+        return text
     return path.read_text(encoding="utf-8-sig")
 
 
@@ -618,7 +622,7 @@ def remember(content: str, topic: str, section: str = "事实", why: str = "", f
 
     Args:
         content: 要记的内容。写结论、事实或待办本身，不要写“用户说”“AI 说”。
-        topic: 话题标签。只能是：赛事 / 人际 / 工具 / 学习 / 方法 / 生活。
+        topic: 话题标签，必须是当前表 topics 里的一个（默认：工作 / 学习 / 生活 / 人际 / 工具 / 方法）。
         section: 定了 / 事实 / 待办 / 否了 / 底表。默认事实。
         why: 决定的原因、待办卡在哪、否掉的理由。定了和否了必填。
         force: 确认要保留重复条目时设为 True。默认 False。

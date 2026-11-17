@@ -24,18 +24,17 @@ Use the external memory table instead of assuming prior-turn context survived.
 ## Write
 
 - Record a conclusion as soon as it is stable, not at the end of the session.
-- Use the six existing topics only: 赛事 / 人际 / 工具 / 学习 / 方法 / 生活.
+- Use only the topics declared in the table's `topics:` line (default: 工作 / 学习 / 生活 / 人际 / 工具 / 方法). Never invent a seventh.
 - Decisions and rejected options require a concrete `why`.
 - Do not write conversational narration or duplicate an existing row.
 - For an ambiguous section or topic, ask the user instead of guessing.
 
 ## Maintain
 
-- `prune()` only reports.
-- Preview archiving with `archive(dry_run=True)`; run it only when explicitly intended.
+- `prune()` only reports; it never deletes.
+- Archiving runs only with two explicit switches: `prune(dry_run=False, execute_archive=True)`.
 - Archiving is non-destructive and remains searchable. Never describe it as deletion.
-- Run `validate()` after a suspected malformed edit.
-- Use `undo()` only for the most recent bad write.
+- For a malformed table or a bad write, use the CLI: `python server/main.py validate` or `python server/main.py undo`. These are not MCP tools and do not appear in the tool list.
 
 ## Boundary
 

@@ -9,18 +9,19 @@
 ```
 AGENTS.md / MEMORY.md    → 规则（自动加载，不用你提醒）
 memory-table.md          → 数据（唯一一张表）
-MCP server (5 个工具)    → 读写表
+MCP server（5 个工具）    → 读写表
 ```
 
 **规则文件存规则，表存数据，两者不能混。**
 
-## 三平台对照
+## 平台对照
 
 | 平台 | 规则文件 | 自动加载时机 | 状态 |
 |---|---|---|---|
-| WorkBuddy | 用户级 `MEMORY.md` | 每次开对话 | ✅ 已通，实测写入成功 |
-| Codex（含 ChatGPT 桌面） | 项目根 `AGENTS.md` | 每轮请求 | ⚠️ 配置已加，待重启验证 |
-| DeepSeek Harness | `~/.dsh/AGENTS.md`（全局链） | **每步探测，改了立刻生效** | MCP 插件随应用自带 |
+| WorkBuddy | 用户级 `MEMORY.md` | 每次开对话 | ✅ 实测读写通过 |
+| Codex（含 ChatGPT 桌面） | 项目根 `AGENTS.md` | 每轮请求 | ✅ 实测读写通过 |
+| DeepSeek Harness | `AGENTS.md`（项目根或 `~/.dsh/`） | 每次 pre-step 探测 | ✅ 实测读写通过 |
+| 豆包 | 界面里填，无文件 | 会话开始 | ⚠️ 未实机验证 |
 
 ## 日常怎么用
 
@@ -42,46 +43,44 @@ MCP server (5 个工具)    → 读写表
 | 「翻一下之前关于 X 的」 | `search` 关键词检索 |
 | 「把这一轮的状态简单说说」 | `brief` 底表 + 最近 3 天 |
 
-## 四个平台分别怎么配
+## 手动配置
 
-### WorkBuddy（已完成）
+安装脚本会自动写这些。想自己配、或者脚本没覆盖到你的客户端，照下面来。
 
-```
-用户级 MEMORY.md：%USERPROFILE%\.workbuddy\user-8053c000-...\MEMORY.md
-MCP 配置：      %USERPROFILE%\.workbuddy\mcp.json
-状态：          已批准（mcp-approvals.json 有记录），5 个工具启用
-```
+路径里的 `<仓库目录>`、`<表路径>`、`<你的 Python>` 换成自己的。
 
-规则区块由 `scripts/sync_auto_inject.py` 维护：
+### WorkBuddy
+
+MCP 配置写在 `~/.workbuddy/mcp.json`，规则写在用户级 `MEMORY.md`：
 
 ```bash
-python D:\context-table\scripts\sync_auto_inject.py ^
-  --append-to "%USERPROFILE%\.workbuddy\user-8053c000-039c-4a2f-ae2c-00ae1bdf3ea9-personal\MEMORY.md"
+python <仓库目录>/scripts/sync_auto_inject.py --append-to \
+  "<你的用户目录>/.workbuddy/user-<id>/MEMORY.md"
 ```
+
+首次连上后，在连接器列表里给 `context-table` 点一次「信任」。
 
 ### Codex / ChatGPT 桌面
 
-**配置已写入** `%USERPROFILE%\.codex\config.toml`：
+`~/.codex/config.toml`：
 
 ```toml
 [mcp_servers.context-table]
-command = 'D:/Python/python.exe'
+command = '<你的 Python>'
 args = ['<仓库目录>/server/main.py']
 startup_timeout_sec = 30
 tool_timeout_sec = 60
-env = { CONTEXT_TABLE_PATH = '<你的表路径>/memory-table.md', PYTHONIOENCODING = 'utf-8' }
+env = { CONTEXT_TABLE_PATH = '<表路径>/memory-table.md', PYTHONIOENCODING = 'utf-8' }
 ```
 
-**规则文件**：`AGENTS.md` 放项目根。当前已放到 `<你的项目目录>\`。
+规则文件 `AGENTS.md` 放**当前项目根**。Codex 只读当前工作目录的，换项目要复制一份过去。
 
-**要做的**：重启 Codex，看 `codex mcp list` 里有没有 `context-table`。
-
-**注意**：Codex 读的是**当前项目根**的 `AGENTS.md`。换项目要复制一份过去。
+改完重启 Codex，`codex mcp list` 里能看到 `context-table` 就算接上了。
 
 ### DeepSeek Harness
 
-**不用装插件。** `@deepseek-ai/dsh-mcp-client` 是随应用内置的（新版 DSH 都有），
-只要在 `%USERPROFILE%\.dsh\profiles\desktop\cordis.patch.yml` 末尾加一条：
+**不用装插件。** `@deepseek-ai/dsh-mcp-client` 随应用内置，只要在
+`~/.dsh/profiles/desktop/cordis.patch.yml` 末尾加一条：
 
 ```yaml
 - insert:
@@ -90,21 +89,24 @@ env = { CONTEXT_TABLE_PATH = '<你的表路径>/memory-table.md', PYTHONIOENCODI
       config:
         serverName: context_table
         transport: stdio
-        command: 'D:/Python/python.exe'
+        command: '<你的 Python>'
         args: ['<仓库目录>/server/main.py']
         env:
-          CONTEXT_TABLE_PATH: '<你的表路径>/memory-table.md'
+          CONTEXT_TABLE_PATH: '<表路径>/memory-table.md'
           PYTHONIOENCODING: 'utf-8'
 ```
 
 三个坑：
 
 - **必须用 `insert:` 包裹**。直接写 `- id: ...` 会被当成"覆盖已有条目"，id 不存在就整条丢弃，日志里只有一句 `patch: entry "..." not found`，界面上完全看不出来。
-
 - **`serverName` 用下划线**，不要用连字符。带连字符会被 DSH 的函数名规范化改成带哈希的名字。
 - **别再往 profile 里 `pnpm add` 这个包**。装了反而会挡住内置版本，因为它的 peer 依赖在 profile 里解析不到。
 
-**规则文件**：写 `%USERPROFILE%\.dsh\AGENTS.md`，这是用户全局链，所有工作区都生效。
+规则文件写 `~/.dsh/AGENTS.md`，那是全局链，所有工作区都生效。
+
+### 豆包
+
+没有配置文件，只能在界面里点，见 [`../adapters/doubao/INSTRUCTIONS.md`](../adapters/doubao/INSTRUCTIONS.md)。
 
 ## 排错
 
@@ -115,6 +117,7 @@ env = { CONTEXT_TABLE_PATH = '<你的表路径>/memory-table.md', PYTHONIOENCODI
 | 表变了但日期格式不对 | `detect_date_fmt` 会跟随表内既有格式，检查表里是不是混了两种 |
 | 记重复了 | `remember` 会拦完全重复；语义重复拦不住，要人工删 |
 | 想撤销上一次写入 | `python server/main.py undo --table <表路径>` |
+| 提示话题不在允许列表 | 看 `CONTEXT_TABLE.md` 的 `topics:` 行，或环境变量 `CONTEXT_TABLE_TOPICS` |
 
 ## 一条不能忘的
 
