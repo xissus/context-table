@@ -387,6 +387,44 @@ def norm_date(s: str) -> date | None:
     return None
 
 
+WEEKDAYS = "一二三四五六日"
+
+
+def today_anchor() -> str:
+    """时间锚点。模型不知道自己今天是几号，这是它唯一的可靠来源。"""
+    t = date.today()
+    return f"今天 {t.isoformat()}（周{WEEKDAYS[t.weekday()]}）"
+
+
+def rel_label(d: date | None) -> str:
+    """把日期换算成相对今天的说法，省得模型自己算。"""
+    if d is None:
+        return ""
+    delta = (date.today() - d).days
+    if delta == 0:
+        return "今天"
+    if delta == 1:
+        return "昨天"
+    if delta == 2:
+        return "前天"
+    if delta < 0:
+        return f"{-delta} 天后"
+    if delta < 30:
+        return f"{delta} 天前"
+    if delta < 365:
+        return f"{delta // 30} 个月前"
+    return f"{delta // 365} 年前"
+
+
+def with_rel(cells: list[str], d: date | None) -> list[str]:
+    """在日期列后面挂一个相对时间，不改原日期。"""
+    out = list(cells)
+    label = rel_label(d)
+    if out and label:
+        out[0] = f"{out[0]}（{label}）"
+    return out
+
+
 def detect_date_fmt(text: str) -> str:
     """看表里已有日期用的是 YYYY-MM-DD 还是 MM-DD，新行跟着走。"""
     samples = []
@@ -505,14 +543,16 @@ def brief_entries(text: str, profile: str, recent_days: int) -> str:
 
     lines = [
         "# 本轮记忆摘要",
-        f"生成时间：{datetime.now().strftime('%Y-%m-%d %H:%M')}",
+        f"{today_anchor()}｜生成于 {datetime.now().strftime('%H:%M')}",
         f"模式：{profile}；主表：{count_entries(text)} 条；底表：{len(bottom)} 条",
+        "",
+        "日期是写入日。标了「昨天」「N 天前」的都不是今天发生的事，复述时照抄那个日期。",
         "",
         "## 底表（长期原则）",
     ]
     bottom_selected = [e for e in selected if e.section == "底表"]
     if bottom_selected:
-        lines.extend(f"- {e.row[0]}｜{'｜'.join(e.row[1:])}" for e in bottom_selected)
+        lines.extend(f"- {'｜'.join(with_rel(e.row, entry_date(e)))}" for e in bottom_selected)
     else:
         lines.append("- 暂无")
 
@@ -520,13 +560,16 @@ def brief_entries(text: str, profile: str, recent_days: int) -> str:
         lines.extend(["", f"## 最近 {recent_days} 天"])
         recent_selected = [e for e in selected if e.section != "底表" and e in recent]
         if recent_selected:
-            lines.extend(f"- [{e.section}] {'｜'.join(e.row)}" for e in recent_selected)
+            lines.extend(f"- [{e.section}] {'｜'.join(with_rel(e.row, entry_date(e)))}" for e in recent_selected)
         else:
             lines.append("- 暂无")
 
     lines.extend(["", "## 未完成待办"])
     if selected_todos:
-        lines.extend(f"- {e.row[0]}｜{e.row[1] if len(e.row) > 1 else '?'}｜{'｜'.join(e.row[2:])}" for e in selected_todos)
+        lines.extend(
+            "- " + ("｜".join(with_rel(e.row, entry_date(e))) if len(e.row) > 1 else e.row[0])
+            for e in selected_todos
+        )
         if len(todos) > len(selected_todos):
             lines.append(f"- 另有 {len(todos) - len(selected_todos)} 条未展开；按话题调用 read(topic=...)")
     else:
@@ -606,7 +649,7 @@ def score_entry(query_variants: list[str], entry: Entry) -> float:
 
 
 def entry_line(entry: Entry) -> str:
-    return f"- [{entry.source}/{entry.section}] " + "｜".join(entry.row)
+    return f"- [{entry.source}/{entry.section}] " + "｜".join(with_rel(entry.row, entry_date(entry)))
 
 
 # ---------------- MCP 工具 ----------------
@@ -641,7 +684,7 @@ def remember(content: str, topic: str, section: str = "事实", why: str = "", f
         text = read_table(path)
         errors, _ = validate_table(text)
         if errors:
-            return "拒绝写入：表结构不合法，先用 validate() 查看并修复。\n- " + "\n- ".join(errors[:8])
+            return "拒绝写入：表结构不合法，用命令行 `python server/main.py validate` 查看并修复。\n- " + "\n- ".join(errors[:8])
 
         today = date.today()
         today_s = today.isoformat() if detect_date_fmt(text) == "full" else f"{today.month:02d}-{today.day:02d}"
@@ -676,7 +719,7 @@ def remember(content: str, topic: str, section: str = "事实", why: str = "", f
             return f"写入失败：表里找不到「{section}」这一节。检查 {path} 是否被改坏。"
         backup_file(path)
         atomic_write(path, new)
-        return f"已记入「{section}」（{topic}）：{q(content)[:40]}"
+        return f"已记入「{section}」（{topic} · {date.today().isoformat()}）：{q(content)[:40]}"
 
 
 @mcp.tool()
@@ -747,14 +790,14 @@ def read(topic: str = "", include_archive: bool = False) -> str:
         if not blocks:
             return f"「{topic}」这个话题下还没有条目。"
         suffix = f"，归档另 {archive_total} 条" if include_archive and archive_total else ""
-        return f"（主表共 {total} 条{suffix}，返回「{topic}」+ 最近 {READ_RECENT_DAYS} 天 + 底表）\n\n" + "\n\n".join(blocks)
+        return f"（主表共 {total} 条{suffix}，返回「{topic}」+ 最近 {READ_RECENT_DAYS} 天 + 底表；{today_anchor()}）\n\n" + "\n\n".join(blocks)
 
     if total <= SMALL_TABLE:
         suffix = f"\n\n（另有归档 {archive_total} 条；检索时用 search，或 read(topic=..., include_archive=True)）" if archive_total else ""
-        return f"（主表共 {total} 条，全量返回）\n\n{text.strip()}{suffix}"
+        return f"（主表共 {total} 条，全量返回；{today_anchor()}。表内日期是写入日，早于今天的不是今天发生的事）\n\n{text.strip()}{suffix}"
 
     return (
-        f"（主表共 {total} 条，超过 {SMALL_TABLE} 条，不全文返回；归档 {archive_total} 条）\n\n"
+        f"（主表共 {total} 条，超过 {SMALL_TABLE} 条，不全文返回；归档 {archive_total} 条；{today_anchor()}）\n\n"
         + catalog_text(text)
         + "\n\n用 read(topic=...) 取某一组，或者先 search(query=...) 定位。"
     )
@@ -792,7 +835,7 @@ def search(query: str, topic: str = "", include_archive: bool = True, limit: int
 
     if top:
         lines = [
-            "（检索结果只是候选，不是“表里只有这些”的证明）",
+            f"（检索结果只是候选，不是“表里只有这些”的证明；{today_anchor()}）",
             f"查询：{query}；命中 {len(scored)} 条；主表 {count_entries(text)} 条；归档 {count_entries(archive_text) if archive_text else 0} 条",
             "",
         ]
@@ -804,7 +847,7 @@ def search(query: str, topic: str = "", include_archive: bool = True, limit: int
     active_total = count_entries(text)
     archive_total = count_entries(archive_text) if archive_text else 0
     header = [
-        "（未找到候选。这不等于表中没有；可能只是措辞不同。）",
+        f"（未找到候选。这不等于表中没有，可能只是措辞不同；{today_anchor()}）",
         f"查询：{query}；主表 {active_total} 条；归档 {archive_total} 条",
         "",
     ]

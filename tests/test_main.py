@@ -48,6 +48,20 @@ class ContextTableTests(unittest.TestCase):
         result = m.remember("采用本地优先", "方法", "定了")
         self.assertIn("必须给 why", result)
 
+    def test_read_interfaces_carry_date_anchor(self):
+        """模型自己不知道今天几号。读接口不给锚点，它就会把昨天的事说成今天。"""
+        text = self.table.read_text(encoding="utf-8")
+        yesterday = (m.date.today() - m.timedelta(days=1)).strftime("%m-%d")
+        text = m.insert_row(text, "事实", f"| {yesterday} | 工具 | 昨天写的这条 | 测试 |")
+        m.atomic_write(self.table, text)
+
+        brief = m.brief()
+        self.assertIn(m.today_anchor(), brief)
+        self.assertIn("（昨天）", brief)
+
+        self.assertIn(m.today_anchor(), m.read())
+        self.assertIn("（昨天）", m.search("昨天写的"))
+
     def test_brief_contains_bottom_recent_and_todo(self):
         m.remember("数据先本地保存", "方法", "底表", "隐私与可恢复")
         m.remember("今天确认了表结构", "工具")

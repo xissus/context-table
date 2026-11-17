@@ -9,7 +9,8 @@ Use the external memory table instead of assuming prior-turn context survived.
 
 ## Start of each user turn
 
-- For a long task, call `brief(profile="standard")` before answering when the answer may depend on prior user-specific state.
+- Call `brief(profile="standard")` before answering whenever the answer may depend on prior user-specific state: a named past event, "last time", "the project we discussed", a continuation.
+- **About to say "today", "yesterday", "recently", or restate any dated fact? Read first.** `brief()` and `read()` open with `今天 2026-11-17` and tag each row `（昨天）` / `（3 天前）`. Copy that tag; do not recompute dates yourself, and never present yesterday's item as today's.
 - In a known continuation or cost-sensitive short loop, `brief(profile="minimal")` is enough.
 - Skip memory only when the request is fully self-contained. If unsure, read.
 - Never claim you read memory if the tool was not called. Tool use is model-controlled; there is no automatic pre-turn injection.
