@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# User data and local safety artifacts
+memory-table.md
+memory-table-archive.md
+memory-table-aliases.md
+.context-table-backups/
+*.lock
+*.tmp
+# 便携版构建产物（放 GitHub Releases，不进仓库）
+dist/
