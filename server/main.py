@@ -127,8 +127,42 @@ def _env_topics(default: list[str]) -> list[str]:
     return items or default
 
 
+def _topics_from_text(text: str) -> list[str] | None:
+    """从表文本里读话题：先认 frontmatter，再认引用块里的反引号列表。
+
+    老版本的表没有 frontmatter，话题写在正文里：
+        > **话题标签（只用这六个，不新造）**
+        > `赛事` `人际` `工具` `学习` `方法` `生活`
+    只认 frontmatter 会把这些表判成非法。
+    """
+    m = re.match(r"^---\s*\n(.*?)\n---\s*\n", text, re.S)
+    if m:
+        for line in m.group(1).splitlines():
+            if ":" not in line:
+                continue
+            key, val = line.split(":", 1)
+            if key.strip() == "topics" and val.strip().startswith("["):
+                items = [x.strip() for x in val.strip()[1:-1].split(",") if x.strip()]
+                if items:
+                    return items
+    lines = text.splitlines()
+    for i, line in enumerate(lines):
+        if "话题" not in line or "`" in line:
+            continue
+        for nxt in lines[i + 1:i + 4]:
+            items = re.findall(r"`([^`\n]+)`", nxt)
+            if len(items) >= 2:
+                return items
+    return None
+
+
 def load_rules() -> tuple[list[str], list[str]]:
-    """从 CONTEXT_TABLE.md 的 frontmatter 读列名和话题。找不到就用默认值。"""
+    """列名从 CONTEXT_TABLE.md frontmatter 读；话题按优先级：环境变量 > 表本身 > 规则文件 > 默认。
+
+    表本身必须排在规则文件前面：用户改的是表里的 `topics:` 或引用块，
+    规则文件只是本项目的默认说明，不该压过真实数据。
+    """
+    cols = DEFAULT_COLUMNS[:]
     here = Path(__file__).resolve().parent.parent / "CONTEXT_TABLE.md"
     for p in (here, Path.cwd() / "CONTEXT_TABLE.md"):
         if not p.is_file():
@@ -140,20 +174,26 @@ def load_rules() -> tuple[list[str], list[str]]:
         m = re.match(r"^---\s*\n(.*?)\n---\s*\n", text, re.S)
         if not m:
             continue
-        cols, topics = DEFAULT_COLUMNS[:], DEFAULT_TOPICS[:]
         for line in m.group(1).splitlines():
             if ":" not in line:
                 continue
             key, val = line.split(":", 1)
-            key, val = key.strip(), val.strip()
-            if val.startswith("[") and val.endswith("]"):
-                items = [x.strip() for x in val[1:-1].split(",") if x.strip()]
-                if key == "columns" and items:
+            if key.strip() == "columns" and val.strip().startswith("["):
+                items = [x.strip() for x in val.strip()[1:-1].split(",") if x.strip()]
+                if items:
                     cols = items
-                elif key == "topics" and items:
-                    topics = items
-        return cols, _env_topics(topics)
-    return DEFAULT_COLUMNS[:], _env_topics(DEFAULT_TOPICS[:])
+        break
+
+    for p in (find_table(), Path.cwd() / "memory-table.md", here):
+        if not p.is_file():
+            continue
+        try:
+            found = _topics_from_text(p.read_text(encoding="utf-8-sig"))
+        except OSError:
+            continue
+        if found:
+            return cols, _env_topics(found)
+    return cols, _env_topics(DEFAULT_TOPICS[:])
 
 
 COLUMNS, TOPICS = load_rules()
