@@ -172,6 +172,14 @@ env = { CONTEXT_TABLE_PATH = '$($TablePath -replace '\\', '\\')', PYTHONIOENCODI
 
 # 3.3 DeepSeek Harness（MCP 客户端插件是内置的，不用装）
 $dsh = Join-Path $HomeDir '.dsh\profiles\desktop\cordis.patch.yml'
+# 版本不同，profile 目录可能不叫 desktop；在 profiles\* 下找第一个 cordis.patch.yml
+if (-not (Test-Path -LiteralPath $dsh)) {
+    $alt = Get-ChildItem -LiteralPath (Join-Path $HomeDir '.dsh\profiles') -Directory -ErrorAction SilentlyContinue |
+        ForEach-Object { Join-Path $_.FullName 'cordis.patch.yml' } |
+        Where-Object { Test-Path -LiteralPath $_ } |
+        Select-Object -First 1
+    if ($alt) { $dsh = $alt }
+}
 if (Test-Path -LiteralPath $dsh) {
     $txt = Read-Utf8 $dsh
     if ($txt -match 'mcp-context-table') {
@@ -203,24 +211,43 @@ if (Test-Path -LiteralPath $dsh) {
         }
     }
 } else {
-    Skip "没装 DeepSeek Harness"
+    if (Test-Path -LiteralPath (Join-Path $HomeDir '.dsh')) {
+        Warn "找到 ~/.dsh，但没找到 cordis.patch.yml。DSH 版本可能不一样，手动加：见包里的 adapters\dsh\INSTRUCTIONS.md"
+    } else {
+        Skip "没装 DeepSeek Harness"
+    }
 }
 
 # ---------- 4. 规则文件 ----------
 Step "4/5 装规则文件（让它自己判断该记什么，不用你开口）"
 $rules = Read-Utf8 $RulesPath
-
-$dshRules = Join-Path $HomeDir '.dsh\AGENTS.md'
-if (Test-Path -LiteralPath (Split-Path -Parent $dshRules)) {
-    if ($DryRun) { Warn "将写 $dshRules" }
-    else { Write-Utf8 $dshRules $rules; Ok "DSH 全局规则：~/.dsh/AGENTS.md" }
-} else {
-    Skip "没装 DSH"
-}
-
 $ruleStart = '<!-- context-table:rule:start -->'
 $ruleEnd   = '<!-- context-table:rule:end -->'
 $block2 = $ruleStart + "`n" + $rules.Trim() + "`n" + $ruleEnd
+
+$dshRules = Join-Path $HomeDir '.dsh\AGENTS.md'
+if (Test-Path -LiteralPath (Split-Path -Parent $dshRules)) {
+    $old = ''
+    if (Test-Path -LiteralPath $dshRules) { $old = Read-Utf8 $dshRules }
+    if ($old -match [regex]::Escape($ruleStart)) {
+        Skip "DSH 规则已存在"
+    } elseif ($old.Trim() -eq $rules.Trim()) {
+        # 已经是这份规则，只是没标记，包上标记，下次就能识别
+        if ($DryRun) { Warn "将给 $dshRules 的现有规则加标记" }
+        else { Write-Utf8 $dshRules ($block2 + "`n"); Ok "DSH 全局规则：~/.dsh/AGENTS.md（已加标记）" }
+    } else {
+        # 里面有别的内容，绝不清空：先备份再追加
+        if ($DryRun) { Warn "将向 $dshRules 追加规则区块" }
+        else {
+            if ($old.Trim()) { Copy-Item -LiteralPath $dshRules -Destination "$dshRules.bak" -Force }
+            $new = if ($old.Trim()) { $old.TrimEnd() + "`n`n" + $block2 + "`n" } else { $block2 + "`n" }
+            Write-Utf8 $dshRules $new
+            Ok "DSH 全局规则：~/.dsh/AGENTS.md（原有内容保留，备份 .bak）"
+        }
+    }
+} else {
+    Skip "没装 DSH"
+}
 
 $dirs = @(Get-ChildItem -LiteralPath (Join-Path $HomeDir '.workbuddy') -Directory -Filter 'user-*' -ErrorAction SilentlyContinue)
 foreach ($d in $dirs) {
