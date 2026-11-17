@@ -8,6 +8,7 @@ CONTEXT_TABLE.md 的 frontmatter 里；本文件只实现通用读写与检索�
 from __future__ import annotations
 
 import contextlib
+import inspect
 import os
 import re
 import shutil
@@ -550,6 +551,10 @@ def brief_entries(text: str, profile: str, recent_days: int) -> str:
         "",
         "## 底表（长期原则）",
     ]
+    sample = [e for e in all_entries if any(str(c).startswith("示例：") for c in e.row)]
+    if sample:
+        lines.insert(5, f"注意：表里有 {len(sample)} 条「示例：」开头的模板行，是安装时带的格式样例，不是用户真实记忆，别当成已经发生的事。")
+
     bottom_selected = [e for e in selected if e.section == "底表"]
     if bottom_selected:
         lines.extend(f"- {'｜'.join(with_rel(e.row, entry_date(e)))}" for e in bottom_selected)
@@ -654,7 +659,24 @@ def entry_line(entry: Entry) -> str:
 
 # ---------------- MCP 工具 ----------------
 
-mcp = _Server("context-table")
+SERVER_INSTRUCTIONS = """这是用户的本地记忆表（Markdown 文件，不是云端服务）。
+
+用法：
+1. 新回合、用户提到过去的事、你要说「今天/昨天/最近」或复述带日期的旧事 → 先调 brief()。
+   它第一行给今天的日期，每条后面标「（昨天）」「（N 天前）」。照那个说，不要自己算日期，
+   也不要把昨天的事说成今天。
+2. 结论刚稳定就调 remember()，不要等聊完。定了和否了必须给 why（原因比结论更值得留）。
+3. 需要精确定位用 search()；空结果不等于表里没有，可能只是措辞不同。
+4. 表结构异常用命令行 validate 或 undo，不要自动重写整表。
+
+边界：这张表只减少跨轮事实遗忘和事实型误记，不修复推理、计算或理解错误。
+模型不调用工具时它不起作用——不要声称读过没有读过的表。"""
+
+
+_SERVER_KW: dict[str, object] = {"instructions": SERVER_INSTRUCTIONS}
+if "version" in inspect.signature(_Server.__init__).parameters:
+    _SERVER_KW["version"] = "0.2.0"   # mcp 1.x 的 FastMCP 没有这个参数
+mcp = _Server("context-table", **_SERVER_KW)
 
 @mcp.tool()
 def remember(content: str, topic: str, section: str = "事实", why: str = "", force: bool = False) -> str:
