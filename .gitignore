@@ -11,3 +11,6 @@ memory-table-aliases.md
 *.tmp
 # 便携版构建产物（放 GitHub Releases，不进仓库）
 dist/
+
+# 本机 WorkBuddy 的项目记忆，给别人看的仓库里不需要
+.workbuddy/

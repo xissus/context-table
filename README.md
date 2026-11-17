@@ -97,7 +97,7 @@
 
 ### 两条路，选一条
 
-**A. 电脑上没装 Python** → 下 `context-table-win-x64.zip`（28MB，在 Releases 页），解压，双击 `install\install.bat`。
+**A. 电脑上没装 Python** → 下 `context-table-win-x64.zip`（25.5MB，在 Releases 页），解压，双击 `install\install.bat`。
 
 包里带着完整的 Python 运行时（3.13.9 + mcp 依赖），**你电脑上什么都不用装**。只支持 Windows x64。
 
@@ -109,7 +109,7 @@
 
 1. 找 Python —— 便携版直接用包里自带的；源码版找本机的（PATH + 6 个常见位置），版本不够会直说
 2. 缺 `mcp` 就自动装（便携版已内置，跳过这步）
-3. 建表（带三条示例，看懂格式后删掉）
+3. 建表（带五条示例，看懂格式后删掉）
 4. 写客户端的配置——已有的条目跳过，不覆盖；改之前先备份
 5. 装规则文件（DSH 全局 + WorkBuddy 用户级）
 

@@ -3,10 +3,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SOURCE = ROOT / "AGENTS.md"
-COPIES = (
-    ROOT / "workbuddy" / "MEMORY.md",
-    ROOT / ".workbuddy" / "memory" / "MEMORY.md",
-)
+
+# 仓库里只有 workbuddy/MEMORY.md。.workbuddy/ 是本机 WorkBuddy 的项目记忆，
+# 不进版本库；本地存在时一并校验，别人 clone 下来也不会因为缺这个文件失败。
+COPIES = [ROOT / "workbuddy" / "MEMORY.md"]
+_local = ROOT / ".workbuddy" / "memory" / "MEMORY.md"
+if _local.is_file():
+    COPIES.append(_local)
 
 
 class AutoInjectTests(unittest.TestCase):
