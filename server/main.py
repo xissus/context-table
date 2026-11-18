@@ -198,6 +198,12 @@ def load_rules() -> tuple[list[str], list[str]]:
 
 COLUMNS, TOPICS = load_rules()
 
+# 单条长度上限。超过就拒绝，除非 force=True。
+# 依据：实操中位数 65 字，八成条目在 120 字内；超长的都是把
+# 版本号、文件大小、完整路径这类「随时能查」的东西写进了表。
+MAX_CONTENT_CHARS = 80
+MAX_WHY_CHARS = 60
+
 
 # ---------------- 文件安全 ----------------
 
@@ -726,11 +732,11 @@ def remember(content: str, topic: str, section: str = "事实", why: str = "", f
     原子替换和自动备份，避免并发写冲突或写到一半损坏。
 
     Args:
-        content: 要记的内容。写结论、事实或待办本身，不要写“用户说”“AI 说”。
+        content: 要记的内容。写结论、事实或待办本身，不要写“用户说”“AI 说”。上限 80 字。
         topic: 话题标签，必须是当前表 topics 里的一个（默认：工作 / 学习 / 生活 / 人际 / 工具 / 方法）。
         section: 定了 / 事实 / 待办 / 否了 / 底表。默认事实。
-        why: 决定的原因、待办卡在哪、否掉的理由。定了和否了必填。
-        force: 确认要保留重复条目时设为 True。默认 False。
+        why: 决定的原因、待办卡在哪、否掉的理由。定了和否了必填。上限 60 字。
+        force: 确认要保留重复条目、或确实需要写超过上限的长文时设为 True。默认 False。
     """
     if section not in COLUMNS:
         return f"拒绝写入：section 只能是 {' / '.join(COLUMNS)}，收到的是「{section}」。"
@@ -740,6 +746,21 @@ def remember(content: str, topic: str, section: str = "事实", why: str = "", f
         return "拒绝写入：content 是空的。"
     if section in ("定了", "否了") and not why.strip():
         return f"拒绝写入：「{section}」这一列必须给 why —— 原因比结论更值得留。"
+    if not force:
+        over = []
+        if len(content.strip()) > MAX_CONTENT_CHARS:
+            over.append(f"内容 {len(content.strip())} 字，上限 {MAX_CONTENT_CHARS}")
+        if len(why.strip()) > MAX_WHY_CHARS:
+            over.append(f"原因 {len(why.strip())} 字，上限 {MAX_WHY_CHARS}")
+        if over:
+            return (
+                "拒绝写入：" + "；".join(over) + "。\n"
+                "表是索引不是备份。版本号、文件大小、完整路径、类名这类随时能查的东西不要进表，"
+                "只留结论和这么定的理由。\n"
+                "- 内容写「做了什么/结论是什么」，一句说完\n"
+                "- 原因写「为什么这么定」，一句话说完\n"
+                "确实需要留长文时，把 force 设为 True。"
+            )
 
     path = find_table()
     with table_lock(path):

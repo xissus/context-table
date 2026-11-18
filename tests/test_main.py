@@ -48,6 +48,22 @@ class ContextTableTests(unittest.TestCase):
         result = m.remember("采用本地优先", "方法", "定了")
         self.assertIn("必须给 why", result)
 
+    def test_overlong_entry_is_rejected(self):
+        """表是索引不是备份。把版本号、路径写进表，读的时候就扫不动了。"""
+        long_content = "太长" * 45
+        result = m.remember(long_content, "工具", "事实")
+        self.assertIn("拒绝写入", result)
+        self.assertIn("上限", result)
+        self.assertEqual(m.count_entries(self.table.read_text(encoding="utf-8")), 0)
+
+        long_why = "原因" * 35
+        result = m.remember("短内容", "方法", "定了", long_why)
+        self.assertIn("拒绝写入", result)
+
+        forced = m.remember(long_content, "工具", "事实", force=True)
+        self.assertIn("已记入", forced)
+        self.assertEqual(m.count_entries(self.table.read_text(encoding="utf-8")), 1)
+
     def test_read_interfaces_carry_date_anchor(self):
         """模型自己不知道今天几号。读接口不给锚点，它就会把昨天的事说成今天。"""
         text = self.table.read_text(encoding="utf-8")
